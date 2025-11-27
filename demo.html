@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eCommerce Order Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-size: 14px;
+            color: #333;
+            background: #f5f7fa;
+            padding: 16px;
+        }
+
+        #widget-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .widget-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .widget-header h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        #customer-email {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Order List */
+        .order-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .order-card {
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .order-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .order-id {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 15px;
+        }
+
+        .order-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-shipped {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-pending {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .order-info {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .order-total {
+            font-weight: 600;
+            color: #333;
+            margin-top: 8px;
+            font-size: 15px;
+        }
+
+        /* Order Details */
+        .order-details {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 0;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .back-button:hover {
+            text-decoration: underline;
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .detail-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .detail-section h4 {
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .item-qty {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .item-price {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-cancel {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #c82333;
+        }
+
+        .btn-return {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-return:hover {
+            background: #e0a800;
+        }
+
+        /* Coupons Section */
+        .coupons-section {
+            margin-top: 20px;
+        }
+
+        .coupons-section h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .coupon-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .coupon-code {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .coupon-details {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="widget-container">
+        <!-- Header -->
+        <div class="widget-header">
+            <h2>Customer Orders</h2>
+            <div id="customer-email">Loading...</div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading orders...</p>
+        </div>
+
+        <!-- Stats Section -->
+        <div id="stats-section" class="stats-section hidden">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-orders">0</div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="total-spent">$0</div>
+                    <div class="stat-label">Total Spent</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order List -->
+        <div id="order-list" class="order-list hidden">
+            <!-- Orders will be populated here -->
+        </div>
+
+        <!-- Order Details Panel -->
+        <div id="order-details" class="order-details hidden">
+            <button id="back-btn" class="back-button">← Back to Orders</button>
+            <div id="details-content"></div>
+        </div>
+
+        <!-- Coupons Section -->
+        <div id="coupons-section" class="coupons-section hidden">
+            <h3>💰 Available Coupons</h3>
+            <div id="coupons-list"></div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="error hidden"></div>
+    </div>
+
+    <script>
+        // Configuration - REPLACE WITH YOUR ACTUAL API CREDENTIALS
+        const CONFIG = {
+            // For Shopify:
+            SHOPIFY_STORE: 'your-store.myshopify.com',
+            SHOPIFY_ACCESS_TOKEN: 'your-access-token',
+            
+            // For WooCommerce:
+            WOOCOMMERCE_URL: 'https://your-store.com',
+            WOOCOMMERCE_KEY: 'ck_your_consumer_key',
+            WOOCOMMERCE_SECRET: 'cs_your_consumer_secret',
+            
+            // Choose platform: 'shopify' or 'woocommerce'
+            PLATFORM: 'shopify'
+        };
+
+        // Global variables
+        let visitorEmail = '';
+        let orders = [];
+        let currentOrder = null;
+
+        // Initialize widget
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWidget();
+        });
+
+        function initializeWidget() {
+            // Get visitor email from URL parameter or use demo email
+            const urlParams = new URLSearchParams(window.location.search);
+            visitorEmail = urlParams.get('email') || 'demo@example.com';
+            
+            document.getElementById('customer-email').textContent = visitorEmail;
+            
+            // Set up event listeners
+            document.getElementById('back-btn').addEventListener('click', showOrderList);
+            
+            // Load data
+            loadOrderData();
+        }
+
+        // Load order data
+        async function loadOrderData() {
+            showLoading(true);
+            
+            try {
+                // Fetch orders based on platform
+                if (CONFIG.PLATFORM === 'shopify') {
+                    orders = await fetchShopifyOrders(visitorEmail);
+                } else if (CONFIG.PLATFORM === 'woocommerce') {
+                    orders = await fetchWooCommerceOrders(visitorEmail);
+                } else {
+                    // Use demo data for testing
+                    orders = getDemoOrders();
+                }
+                
+                // Display data
+                displayStats(orders);
+                displayOrders(orders);
+                
+                // Fetch and display coupons
+                const coupons = await fetchCoupons(visitorEmail);
+                displayCoupons(coupons);
+                
+                showLoading(false);
+            } catch (error) {
+                showLoading(false);
+                showError('Failed to load order data: ' + error.message);
+                console.error('Error:', error);
+            }
+        }
+
+        // Fetch orders from Shopify
+        async function fetchShopifyOrders(email) {
+            const url = `https://${CONFIG.SHOPIFY_STORE}/admin/api/2024-01/orders.json?email=${email}&status=any`;
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': CONFIG.SHOPIFY_ACCESS_TOKEN
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch orders from Shopify');
+            }
+            
+            const data = await response.json();
+            return data.orders || [];
+        }
+
+        // Fetch orders from WooCommerce
+        async function fetchWooCommerceOrders(email) {
+            const auth = btoa(`${CONFIG.WOOCOMMERCE_KEY}:${CONFIG.WOOCOMMERCE_SECRET}`);
+            const url = `${CONFIG.WOOCOMMERCE_URL}/wp-json/wc/v3/orders?customer=${email}`;
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch orders from WooCommerce');
+            }
+            
+            return await response.json();
+        }
+
+        // Demo data for testing
+        function getDemoOrders() {
+            return [
+                {
+                    id: '12345',
+                    order_number: '12345',
+                    created_at: '2024-12-15T10:00:00Z',
+                    fulfillment_status: 'delivered',
+                    total_price: '89.99',
+                    line_items: [
+                        { title: 'Wireless Headphones', quantity: 1, price: '79.99' },
+                        { title: 'Phone Case', quantity: 1, price: '10.00' }
+                    ],
+                    shipping_address: {
+                        address1: '123 Main St',
+                        city: 'New York',
+                        province: 'NY',
+                        zip: '10001',
+                        country: 'USA'
+                    }
+                },
+                {
+                    id: '12344',
+                    order_number: '12344',
+                    created_at: '2024-11-28T14:30:00Z',
+                    fulfillment_status: 'shipped',
+                    total_price: '45.50',
+                    line_items: [
+                        { title: 'USB Cable', quantity: 2, price: '22.75' }
+                    ],
+                    shipping_address: {
+                        address1: '456 Oak Ave',
+                        city: 'Los Angeles',
+                        province: 'CA',
+                        zip: '90001',
+                        country: 'USA'
+                    }
+                },
+                {
+                    id: '12340',
+                    order_number: '12340',
+                    created_at: '2024-11-10T09:15:00Z',
+                    fulfillment_status: 'delivered',
+                    total_price: '120.00',
+                    line_items: [
+                        { title: 'Bluetooth Speaker', quantity: 1, price: '99.99' },
+                        { title: 'Charging Dock', quantity: 1, price: '20.01' }
+                    ],
+                    shipping_address: {
+                        address1: '789 Elm St',
+                        city: 'Chicago',
+                        province: 'IL',
+                        zip: '60601',
+                        country: 'USA'
+                    }
+                }
+            ];
+        }
+
+        // Display statistics
+        function displayStats(orders) {
+            const totalOrders = orders.length;
+            const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.total_price || 0), 0);
+            
+            document.getElementById('total-orders').textContent = totalOrders;
+            document.getElementById('total-spent').textContent = `$${totalSpent.toFixed(2)}`;
+            document.getElementById('stats-section').classList.remove('hidden');
+        }
+
+        // Display orders in the list
+        function displayOrders(orders) {
+            const orderList = document.getElementById('order-list');
+            orderList.innerHTML = '';
+            
+            if (orders.length === 0) {
+                orderList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <p>No orders found for this customer</p>
+                    </div>
+                `;
+                orderList.classList.remove('hidden');
+                return;
+            }
+            
+            orders.forEach(order => {
+                const orderCard = createOrderCard(order);
+                orderList.appendChild(orderCard);
+            });
+            
+            orderList.classList.remove('hidden');
+        }
+
+        // Create order card element
+        function createOrderCard(order) {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.onclick = () => showOrderDetails(order);
+            
+            const statusClass = getStatusClass(order.fulfillment_status);
+            const date = new Date(order.created_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            const itemCount = order.line_items ? order.line_items.length : 0;
+            
+            card.innerHTML = `
+                <div class="order-header">
+                    <span class="order-id">#${order.order_number}</span>
+                    <span class="order-status ${statusClass}">
+                        ${formatStatus(order.fulfillment_status)}
+                    </span>
+                </div>
+                <div class="order-info">
+                    <div>${date} • ${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+                    <div class="order-total">Total: $${order.total_price}</div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Get CSS class for order status
+        function getStatusClass(status) {
+            if (!status) return 'status-pending';
+            const statusLower = status.toLowerCase();
+            if (statusLower.includes('delivered')) return 'status-delivered';
+            if (statusLower.includes('shipped') || statusLower.includes('fulfillment')) return 'status-shipped';
+            if (statusLower.includes('cancelled')) return 'status-cancelled';
+            return 'status-pending';
+        }
+
+        // Format status text
+        function formatStatus(status) {
+            if (!status) return 'Pending';
+            return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+        }
+
+        // Show order details
+        function showOrderDetails(order) {
+            currentOrder = order;
+            
+            document.getElementById('order-list').classList.add('hidden');
+            document.getElementById('coupons-section').classList.add('hidden');
+            document.getElementById('stats-section').classList.add('hidden');
+            
+            const detailsPanel = document.getElementById('order-details');
+            const detailsContent = document.getElementById('details-content');
+            
+            detailsPanel.classList.remove('hidden');
+            
+            // Build items HTML
+            let itemsHTML = '';
+            if (order.line_items && order.line_items.length > 0) {
+                order.line_items.forEach(item => {
+                    itemsHTML += `
+                        <div class="order-item">
+                            <div class="item-info">
+                                <div class="item-name">${item.title}</div>
+                                <div class="item-qty">Quantity: ${item.quantity}</div>
+                            </div>
+                            <div class="item-price">$${item.price}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Determine available actions
+            let actionsHTML = '';
+            const status = (order.fulfillment_status || '').toLowerCase();
+            
+            if (status === 'shipped' || status.includes('fulfillment')) {
+                actionsHTML = `
+                    <div class="action-buttons">
+                        <button class="btn btn-cancel" onclick="cancelOrder('${order.id}')">
+                            Cancel Order
+                        </button>
+                    </div>
+                `;
+            } else if (status === 'delivered') {
+                actionsHTML = `
+                    <div class="action-buttons">
+                        <button class="btn btn-return" onclick="returnOrder('${order.id}')">
+                            Return Order
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Format address
+            let addressHTML = 'N/A';
+            if (order.shipping_address) {
+                const addr = order.shipping_address;
+                addressHTML = `
+                    ${addr.address1}<br>
+                    ${addr.city}, ${addr.province} ${addr.zip}<br>
+                    ${addr.country}
+                `;
+            }
+            
+            detailsContent.innerHTML = `
+                <div class="detail-section">
+                    <h4>Order #${order.order_number}</h4>
+                    <p><strong>Status:</strong> ${formatStatus(order.fulfillment_status)}</p>
+                    <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Items Ordered</h4>
+                    ${itemsHTML}
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Shipping Address</h4>
+                    <p>${addressHTML}</p>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Order Total</h4>
+                    <p style="font-size: 24px; font-weight: 700; color: #667eea;">$${order.total_price}</p>
+                </div>
+                
+                ${actionsHTML}
+            `;
+        }
+
+        // Show order list
+        function showOrderList() {
+            document.getElementById('order-details').classList.add('hidden');
+            document.getElementById('order-list').classList.remove('hidden');
+            document.getElementById('coupons-section').classList.remove('hidden');
+            document.getElementById('stats-section').classList.remove('hidden');
+        }
+
+        // Fetch coupons
+        async function fetchCoupons(email) {
+            // Demo coupons - replace with actual API call
+            return [
+                {
+                    code: 'SAVE20',
+                    description: '20% off your next order',
+                    expiry: '2025-02-01'
+                },
+                {
+                    code: 'FREESHIP',
+                    description: 'Free shipping on orders over $50',
+                    expiry: '2025-01-31'
+                }
+            ];
+        }
+
+        // Display coupons
+        function displayCoupons(coupons) {
+            const couponsList = document.getElementById('coupons-list');
+            couponsList.innerHTML = '';
+            
+            if (coupons.length === 0) {
+                couponsList.innerHTML = '<p style="color: #666;">No active coupons available</p>';
+                document.getElementById('coupons-section').classList.remove('hidden');
+                return;
+            }
+            
+            coupons.forEach(coupon => {
+                const couponCard = document.createElement('div');
+                couponCard.className = 'coupon-card';
+                couponCard.innerHTML = `
+                    <div class="coupon-code">${coupon.code}</div>
+                    <div class="coupon-details">
+                        ${coupon.description}<br>
+                        Valid until: ${new Date(coupon.expiry).toLocaleDateString()}
+                    </div>
+                    <button class="copy-btn" onclick="copyCouponCode('${coupon.code}')">
+                        Copy Code
+                    </button>
+                `;
+                couponsList.appendChild(couponCard);
+            });
+            
+            document.getElementById('coupons-section').classList.remove('hidden');
+        }
+
+        // Copy coupon code
+        function copyCouponCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                alert(`Coupon code "${code}" copied to clipboard!`);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        // Cancel order
+        async function cancelOrder(orderId) {
+            if (!confirm('Are you sure you want to cancel this order?')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                if (CONFIG.PLATFORM === 'shopify') {
+                    const url = `https://${CONFIG.SHOPIFY_STORE}/admin/api/2024-01/orders/${orderId}/cancel.json`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Shopify-Access-Token': CONFIG.SHOPIFY_ACCESS_TOKEN
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to cancel order');
+                }
+                
+                alert('Order cancelled successfully!');
+                await loadOrderData();
+                showOrderList();
+            } catch (error) {
+                showError('Failed to cancel order: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Return order
+        async function returnOrder(orderId) {
+            if (!confirm('Are you sure you want to return this order?')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                // Implement return logic based on your platform
+                // This is a placeholder
+                alert('Return request submitted successfully! Customer will receive return instructions via email.');
+                
+                await loadOrderData();
+                showOrderList();
+            } catch (error) {
+                showError('Failed to process return: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Show/hide loading state
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
